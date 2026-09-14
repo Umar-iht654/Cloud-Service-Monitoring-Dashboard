@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { getOverviewReport } from "../api/reports";
 import { getApiErrorMessage } from "../api/client";
 import { SummaryCard } from "../components/dashboard/SummaryCard";
 import { LightRays } from "../components/effects/LightRays";
@@ -16,6 +15,7 @@ import {
   GlobeIcon,
   RefreshIcon,
 } from "../components/ui/Icons";
+import { authenticatedMonitoringReadSource as monitoringReadSource } from "../data/monitoringReadSource";
 import type { OverviewReport, OverviewServiceReport, ReportRange } from "../types/api";
 import { formatDateTime, formatMilliseconds, formatPercentage } from "../utils/formatters";
 import { servicePath } from "../utils/serviceRoutes";
@@ -122,10 +122,10 @@ export function ReportsPage() {
     }
 
     try {
-      const response = await getOverviewReport(nextRange);
+      const response = await monitoringReadSource.getOverviewReport(nextRange);
       if (currentRequest !== requestVersion.current) return;
 
-      const nextReport = response.data;
+      const nextReport = response;
       setReport({
         ...nextReport,
         services: nextReport.services ?? [],

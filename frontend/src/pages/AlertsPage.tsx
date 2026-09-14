@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { getAlerts } from "../api/alerts";
 import { getApiErrorMessage } from "../api/client";
 import { AlertHistory } from "../components/alerts/AlertHistory";
 import { AlertsPageSkeleton } from "../components/alerts/AlertsPageSkeleton";
 import { ErrorState } from "../components/ui/ErrorState";
 import { ActivityIcon, AlertIcon, RefreshIcon } from "../components/ui/Icons";
+import { authenticatedMonitoringReadSource as monitoringReadSource } from "../data/monitoringReadSource";
 import type { Alert } from "../types/api";
 import { formatDateTime } from "../utils/formatters";
 
@@ -29,10 +29,10 @@ export function AlertsPage() {
     }
 
     try {
-      const response = await getAlerts(50);
+      const response = await monitoringReadSource.getAlerts(50);
       if (currentRequest !== requestVersion.current) return;
-      setAlerts(response.data.alerts);
-      setReturnedCount(response.data.returned_count);
+      setAlerts(response.alerts);
+      setReturnedCount(response.returned_count);
       setLastUpdatedAt(new Date().toISOString());
       setError("");
     } catch (requestError) {

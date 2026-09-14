@@ -1,8 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { getApiErrorMessage } from "../api/client";
-import { getDashboardSummary } from "../api/dashboard";
-import { getServices, getServiceSummary } from "../api/services";
 import { DashboardSkeleton } from "../components/dashboard/DashboardSkeleton";
 import { EmptyServices } from "../components/dashboard/EmptyServices";
 import { SummaryCard } from "../components/dashboard/SummaryCard";
@@ -18,6 +16,7 @@ import {
   PlusIcon,
   RefreshIcon,
 } from "../components/ui/Icons";
+import { authenticatedMonitoringReadSource as monitoringReadSource } from "../data/monitoringReadSource";
 import type { DashboardSummary, Service, ServiceSummary } from "../types/api";
 import { formatDateTime, formatMilliseconds, formatPercentage } from "../utils/formatters";
 
@@ -56,14 +55,14 @@ export function DashboardPage() {
 
     try {
       const [summaryResponse, servicesResponse] = await Promise.all([
-        getDashboardSummary(),
-        getServices(),
+        monitoringReadSource.getDashboardSummary(),
+        monitoringReadSource.getServices(),
       ]);
 
-      const nextServices = servicesResponse.data.services;
+      const nextServices = servicesResponse.services;
       if (currentRequest !== requestVersion.current) return;
 
-      setSummary(summaryResponse.data.summary);
+      setSummary(summaryResponse.summary);
       setServices(nextServices);
       setServiceSummaryErrors({});
       setServiceSummaryLoading(
@@ -72,13 +71,15 @@ export function DashboardPage() {
       if (!silent) setLoading(false);
 
       const detailResults = await Promise.allSettled(
-        nextServices.map((service) => getServiceSummary(service.id)),
+        nextServices.map((service) =>
+          monitoringReadSource.getServiceSummary(service.id),
+        ),
       );
       const summaries: Record<number, ServiceSummary> = {};
       const summaryErrors: Record<number, true> = {};
       detailResults.forEach((result, index) => {
         if (result.status === "fulfilled") {
-          summaries[nextServices[index].id] = result.value.data.summary;
+          summaries[nextServices[index].id] = result.value.summary;
         } else {
           summaryErrors[nextServices[index].id] = true;
         }

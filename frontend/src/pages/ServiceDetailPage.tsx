@@ -1,13 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
-import { getServiceAlerts } from "../api/alerts";
 import { getApiErrorMessage } from "../api/client";
-import {
-  deleteService,
-  getHealthChecks,
-  getService,
-  getServiceSummary,
-} from "../api/services";
+import { deleteService } from "../api/services";
 import { AlertHistory } from "../components/alerts/AlertHistory";
 import { HealthCheckTable } from "../components/services/HealthCheckTable";
 import { ResponseTimeChart } from "../components/services/ResponseTimeChart";
@@ -21,6 +15,7 @@ import {
   TrashIcon,
 } from "../components/ui/Icons";
 import { StatusBadge } from "../components/ui/StatusBadge";
+import { authenticatedMonitoringReadSource as monitoringReadSource } from "../data/monitoringReadSource";
 import type { Alert, HealthCheck, Service, ServiceSummary } from "../types/api";
 import {
   formatDateTime,
@@ -77,18 +72,18 @@ export function ServiceDetailPage() {
     try {
       const [serviceResult, summaryResult, checksResult, alertsResult] =
         await Promise.allSettled([
-          getService(id),
-          getServiceSummary(id),
+          monitoringReadSource.getService(id),
+          monitoringReadSource.getServiceSummary(id),
           // The table shows 25 by default and lets the user reveal the rest.
-          getHealthChecks(id, 100),
-          getServiceAlerts(id, 8),
+          monitoringReadSource.getHealthChecks(id, 100),
+          monitoringReadSource.getServiceAlerts(id, 8),
         ]);
       if (currentRequest !== requestVersion.current) return;
 
       const refreshIssues: string[] = [];
 
       if (serviceResult.status === "fulfilled") {
-        setService(serviceResult.value.data.service);
+        setService(serviceResult.value.service);
       } else {
         const message = getApiErrorMessage(
           serviceResult.reason,
@@ -99,7 +94,7 @@ export function ServiceDetailPage() {
       }
 
       if (summaryResult.status === "fulfilled") {
-        setSummary(summaryResult.value.data.summary);
+        setSummary(summaryResult.value.summary);
       } else {
         setSummaryError(
           getApiErrorMessage(
@@ -111,7 +106,7 @@ export function ServiceDetailPage() {
       }
 
       if (checksResult.status === "fulfilled") {
-        setHealthChecks(checksResult.value.data.health_checks);
+        setHealthChecks(checksResult.value.health_checks);
       } else {
         setChecksError(
           getApiErrorMessage(
@@ -123,7 +118,7 @@ export function ServiceDetailPage() {
       }
 
       if (alertsResult.status === "fulfilled") {
-        setAlerts(alertsResult.value.data.alerts);
+        setAlerts(alertsResult.value.alerts);
       } else {
         setAlertsError(
           getApiErrorMessage(
