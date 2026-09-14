@@ -44,6 +44,8 @@ function RouteMetadata() {
             ? "Verify email"
           : normalizedPathname === "/dashboard" || normalizedPathname === "/"
             ? "Service health"
+            : normalizedPathname === "/services"
+              ? "Monitored services"
             : normalizedPathname === "/services/new"
               ? "Add service"
               : normalizedPathname === "/alerts"
@@ -73,16 +75,20 @@ function App() {
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/verify-email" element={<VerifyEmailPage />} />
 
+            <Route element={<AppLayout />}>
+              <Route path="/dashboard" element={<DashboardPage />} />
+              <Route path="/services" element={<DashboardPage />} />
+              <Route path="/services/:id/:slug" element={<ServiceDetailPage />} />
+              <Route path="/services/:id" element={<ServiceDetailPage />} />
+              <Route path="/alerts" element={<AlertsPage />} />
+              <Route path="/reports" element={<ReportsPage />} />
+            </Route>
+
             <Route element={<ProtectedRoute />}>
               <Route element={<AppLayout />}>
-                <Route path="/dashboard" element={<DashboardPage />} />
                 <Route path="/services/new" element={<AddServicePage />} />
-                <Route path="/services/:id/:slug" element={<ServiceDetailPage />} />
                 <Route path="/services/:id/:slug/edit" element={<EditServicePage />} />
-                <Route path="/services/:id" element={<ServiceDetailPage />} />
                 <Route path="/services/:id/edit" element={<EditServicePage />} />
-                <Route path="/alerts" element={<AlertsPage />} />
-                <Route path="/reports" element={<ReportsPage />} />
               </Route>
             </Route>
 

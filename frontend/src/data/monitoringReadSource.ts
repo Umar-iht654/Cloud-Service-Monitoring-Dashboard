@@ -31,7 +31,7 @@ export interface MonitoringReadSource {
   getOverviewReport: (range: ReportRange) => Promise<OverviewReportResponse>;
 }
 
-// Protected pages use this source in Phase 1, so their reads keep the existing API behavior.
+// Authenticated reads retain the existing API behavior through the established modules.
 export const authenticatedMonitoringReadSource: MonitoringReadSource = {
   async getDashboardSummary() {
     const { data } = await dashboardApi.getDashboardSummary();

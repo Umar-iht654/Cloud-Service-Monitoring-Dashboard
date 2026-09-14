@@ -4,11 +4,12 @@ import { AlertHistory } from "../components/alerts/AlertHistory";
 import { AlertsPageSkeleton } from "../components/alerts/AlertsPageSkeleton";
 import { ErrorState } from "../components/ui/ErrorState";
 import { ActivityIcon, AlertIcon, RefreshIcon } from "../components/ui/Icons";
-import { authenticatedMonitoringReadSource as monitoringReadSource } from "../data/monitoringReadSource";
+import { useMonitoringReadSource } from "../hooks/useMonitoringReadSource";
 import type { Alert } from "../types/api";
 import { formatDateTime } from "../utils/formatters";
 
 export function AlertsPage() {
+  const monitoringReadSource = useMonitoringReadSource();
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [returnedCount, setReturnedCount] = useState(0);
   const [lastUpdatedAt, setLastUpdatedAt] = useState<string | null>(null);
@@ -49,7 +50,7 @@ export function AlertsPage() {
         setRefreshing(false);
       }
     }
-  }, []);
+  }, [monitoringReadSource]);
 
   useEffect(() => {
     void loadAlerts();

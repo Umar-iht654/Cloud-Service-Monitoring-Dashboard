@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from "react";
-import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { Link, Navigate, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { FullPageLoader } from "../ui/FullPageLoader";
 import { useAuth } from "../../context/AuthContext";
 import { useUnsavedChanges } from "../../context/UnsavedChangesContext";
 import {
   ActivityIcon,
   AlertIcon,
   CloseIcon,
+  GlobeIcon,
   GridIcon,
   LogOutIcon,
   MenuIcon,
@@ -16,23 +18,29 @@ import {
 const navItems = [
   {
     to: "/dashboard",
-    label: "Overview",
+    label: "Dashboard",
     icon: GridIcon,
-    isActive: (pathname: string) =>
-      pathname === "/dashboard" ||
-      (pathname.startsWith("/services/") && pathname !== "/services/new"),
+    isActive: (pathname: string) => pathname === "/dashboard",
   },
   {
-    to: "/reports",
-    label: "Reports",
-    icon: ActivityIcon,
-    isActive: (pathname: string) => pathname === "/reports",
+    to: "/services",
+    label: "Services",
+    icon: GlobeIcon,
+    isActive: (pathname: string) =>
+      pathname === "/services" ||
+      (pathname.startsWith("/services/") && pathname !== "/services/new"),
   },
   {
     to: "/alerts",
     label: "Alerts",
     icon: AlertIcon,
     isActive: (pathname: string) => pathname === "/alerts",
+  },
+  {
+    to: "/reports",
+    label: "Reports",
+    icon: ActivityIcon,
+    isActive: (pathname: string) => pathname === "/reports",
   },
   {
     to: "/services/new",
@@ -43,7 +51,7 @@ const navItems = [
 ];
 
 function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
-  const { user, logout } = useAuth();
+  const { user, isAuthenticated, logout } = useAuth();
   const { confirmNavigation } = useUnsavedChanges();
   const location = useLocation();
   const navigate = useNavigate();
@@ -112,23 +120,44 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
       </nav>
 
       <div className="shrink-0 border-t border-white/8 p-4">
-        <div className="mb-3 flex items-center gap-3 rounded-xl bg-white/[0.035] p-3">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-700 text-xs font-bold text-white">
-            {initials || "U"}
+        {isAuthenticated ? (
+          <>
+            <div className="mb-3 flex items-center gap-3 rounded-xl bg-white/[0.035] p-3">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-700 text-xs font-bold text-white">
+                {initials || "U"}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium text-white">{user?.name}</p>
+                <p className="truncate text-xs text-slate-400">{user?.email}</p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-400 transition hover:bg-rose-500/10 hover:text-rose-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[#07111f]"
+            >
+              <LogOutIcon className="h-5 w-5" />
+              Sign out
+            </button>
+          </>
+        ) : (
+          <div className="space-y-2">
+            <Link
+              to="/login"
+              onClick={onNavigate}
+              className="flex w-full items-center justify-center rounded-xl border border-white/10 bg-white/[0.05] px-3 py-2.5 text-sm font-semibold text-white transition hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#07111f]"
+            >
+              Sign in
+            </Link>
+            <Link
+              to="/register"
+              onClick={onNavigate}
+              className="flex w-full items-center justify-center rounded-xl px-3 py-2 text-sm font-medium text-cyan-300 transition hover:bg-cyan-400/10 hover:text-cyan-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#07111f]"
+            >
+              Create account
+            </Link>
           </div>
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-medium text-white">{user?.name}</p>
-            <p className="truncate text-xs text-slate-400">{user?.email}</p>
-          </div>
-        </div>
-        <button
-          type="button"
-          onClick={handleLogout}
-          className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-400 transition hover:bg-rose-500/10 hover:text-rose-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[#07111f]"
-        >
-          <LogOutIcon className="h-5 w-5" />
-          Sign out
-        </button>
+        )}
       </div>
     </div>
   );
@@ -136,6 +165,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
 
 export function AppLayout() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { isLoading, requiresAuthentication } = useAuth();
   const location = useLocation();
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   const drawerRef = useRef<HTMLElement>(null);
@@ -200,6 +230,26 @@ export function AppLayout() {
       menuButton?.focus();
     };
   }, [mobileMenuOpen]);
+
+  if (isLoading) {
+    return <FullPageLoader label="Restoring your session" />;
+  }
+
+  if (requiresAuthentication) {
+    return (
+      <Navigate
+        to="/login"
+        replace
+        state={{
+          from: {
+            pathname: location.pathname,
+            search: location.search,
+            hash: location.hash,
+          },
+        }}
+      />
+    );
+  }
 
   return (
     <div className="app-shell min-h-screen text-slate-900">

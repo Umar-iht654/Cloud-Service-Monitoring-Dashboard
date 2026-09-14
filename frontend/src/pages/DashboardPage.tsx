@@ -16,13 +16,15 @@ import {
   PlusIcon,
   RefreshIcon,
 } from "../components/ui/Icons";
-import { authenticatedMonitoringReadSource as monitoringReadSource } from "../data/monitoringReadSource";
+import { useMonitoringReadSource } from "../hooks/useMonitoringReadSource";
 import type { DashboardSummary, Service, ServiceSummary } from "../types/api";
 import { formatDateTime, formatMilliseconds, formatPercentage } from "../utils/formatters";
 
 export function DashboardPage() {
   const location = useLocation();
   const navigate = useNavigate();
+  const monitoringReadSource = useMonitoringReadSource();
+  const isServicesRoute = location.pathname.replace(/\/+$/, "") === "/services";
   const routeFeedback = location.state as {
     deleted?: boolean;
     deletedName?: string;
@@ -100,7 +102,7 @@ export function DashboardPage() {
         setRefreshing(false);
       }
     }
-  }, []);
+  }, [monitoringReadSource]);
 
   useEffect(() => {
     void loadDashboard();
@@ -115,6 +117,17 @@ export function DashboardPage() {
     if (!routeFeedback?.deleted) return;
     navigate(location.pathname, { replace: true, state: null });
   }, [location.pathname, navigate, routeFeedback?.deleted]);
+
+  useEffect(() => {
+    if (!isServicesRoute || loading || error) return;
+
+    const animationFrame = window.requestAnimationFrame(() => {
+      document.getElementById("monitored-services")?.scrollIntoView({
+        block: "start",
+      });
+    });
+    return () => window.cancelAnimationFrame(animationFrame);
+  }, [error, isServicesRoute, loading]);
 
   const healthMessage = loading
     ? "Syncing the latest telemetry"
@@ -260,7 +273,7 @@ export function DashboardPage() {
             </div>
           </section>
 
-          <section className="mt-9">
+          <section id="monitored-services" className="mt-9 scroll-mt-20">
             <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
               <div>
                 <h2 className="text-lg font-semibold text-slate-950">Monitored services</h2>

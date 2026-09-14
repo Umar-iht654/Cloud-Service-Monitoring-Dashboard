@@ -15,7 +15,8 @@ import {
   TrashIcon,
 } from "../components/ui/Icons";
 import { StatusBadge } from "../components/ui/StatusBadge";
-import { authenticatedMonitoringReadSource as monitoringReadSource } from "../data/monitoringReadSource";
+import { useAuth } from "../context/AuthContext";
+import { useMonitoringReadSource } from "../hooks/useMonitoringReadSource";
 import type { Alert, HealthCheck, Service, ServiceSummary } from "../types/api";
 import {
   formatDateTime,
@@ -28,6 +29,8 @@ export function ServiceDetailPage() {
   const { id, slug } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
+  const { isAuthenticated } = useAuth();
+  const monitoringReadSource = useMonitoringReadSource();
   const [service, setService] = useState<Service | null>(null);
   const [summary, setSummary] = useState<ServiceSummary | null>(null);
   const [healthChecks, setHealthChecks] = useState<HealthCheck[]>([]);
@@ -143,7 +146,7 @@ export function ServiceDetailPage() {
         setRefreshing(false);
       }
     }
-  }, [id]);
+  }, [id, monitoringReadSource]);
 
   useEffect(() => {
     void loadService();
@@ -219,6 +222,10 @@ export function ServiceDetailPage() {
   }, [deleteDialogOpen]);
 
   const handleDelete = async () => {
+    if (!isAuthenticated) {
+      navigate("/login");
+      return;
+    }
     if (!id || !service) return;
     setDeleting(true);
     try {
@@ -348,14 +355,17 @@ export function ServiceDetailPage() {
             <RefreshIcon className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
             {refreshing ? "Refreshing…" : "Refresh"}
           </button>
-          <Link to={serviceEditPath(service.id, service.name)} className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.06] px-3.5 py-2.5 text-sm font-semibold text-slate-200 backdrop-blur-sm transition hover:bg-white/10">
+          <Link to={isAuthenticated ? serviceEditPath(service.id, service.name) : "/login"} className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.06] px-3.5 py-2.5 text-sm font-semibold text-slate-200 backdrop-blur-sm transition hover:bg-white/10">
             <EditIcon className="h-4 w-4" />
             Edit
           </Link>
           <button
             ref={deleteTriggerRef}
             type="button"
-            onClick={() => setDeleteDialogOpen(true)}
+            onClick={() => {
+              if (isAuthenticated) setDeleteDialogOpen(true);
+              else navigate("/login");
+            }}
             disabled={deleting}
             className="inline-flex items-center gap-2 rounded-xl border border-rose-300/20 bg-rose-400/10 px-3.5 py-2.5 text-sm font-semibold text-rose-200 backdrop-blur-sm transition hover:bg-rose-400/15 disabled:opacity-60"
           >
@@ -452,7 +462,7 @@ export function ServiceDetailPage() {
         )}
       </section>
 
-      {deleteDialogOpen && (
+      {deleteDialogOpen && isAuthenticated && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <button
             type="button"

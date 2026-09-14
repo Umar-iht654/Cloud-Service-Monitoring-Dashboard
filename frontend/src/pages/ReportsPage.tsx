@@ -15,7 +15,7 @@ import {
   GlobeIcon,
   RefreshIcon,
 } from "../components/ui/Icons";
-import { authenticatedMonitoringReadSource as monitoringReadSource } from "../data/monitoringReadSource";
+import { useMonitoringReadSource } from "../hooks/useMonitoringReadSource";
 import type { OverviewReport, OverviewServiceReport, ReportRange } from "../types/api";
 import { formatDateTime, formatMilliseconds, formatPercentage } from "../utils/formatters";
 import { servicePath } from "../utils/serviceRoutes";
@@ -96,6 +96,7 @@ function ReliabilityHighlight({
 }
 
 export function ReportsPage() {
+  const monitoringReadSource = useMonitoringReadSource();
   const [range, setRange] = useState<Extract<ReportRange, "7d" | "30d">>("7d");
   const [report, setReport] = useState<OverviewReport | null>(null);
   const [lastUpdatedAt, setLastUpdatedAt] = useState<string | null>(null);
@@ -143,7 +144,7 @@ export function ReportsPage() {
         setRefreshing(false);
       }
     }
-  }, []);
+  }, [monitoringReadSource]);
 
   useEffect(() => {
     void loadReport(range, reportRef.current !== null);
