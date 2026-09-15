@@ -8,7 +8,6 @@ import {
   ActivityIcon,
   AlertIcon,
   CloseIcon,
-  GlobeIcon,
   GridIcon,
   LogOutIcon,
   MenuIcon,
@@ -22,14 +21,6 @@ const navItems = [
     label: "Dashboard",
     icon: GridIcon,
     isActive: (pathname: string) => pathname === "/dashboard",
-  },
-  {
-    to: "/services",
-    label: "Services",
-    icon: GlobeIcon,
-    isActive: (pathname: string) =>
-      pathname === "/services" ||
-      (pathname.startsWith("/services/") && pathname !== "/services/new"),
   },
   {
     to: "/alerts",
