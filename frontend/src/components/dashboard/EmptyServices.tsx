@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { AuthRequiredLink } from "../auth/AuthRequiredLink";
 import { GlobeIcon, PlusIcon } from "../ui/Icons";
 
 export function EmptyServices() {
@@ -11,13 +11,14 @@ export function EmptyServices() {
       <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500">
         Add a website or API endpoint. The background checker will begin recording its availability and response time automatically.
       </p>
-      <Link
+      <AuthRequiredLink
         to="/services/new"
+        intent="add-service"
         className="primary-action mt-6 inline-flex items-center gap-2 rounded-xl bg-[#07111f] px-4 py-3 text-sm font-semibold text-white focus:outline-none focus:ring-4 focus:ring-cyan-500/20"
       >
         <PlusIcon className="h-4 w-4" />
         Add your first service
-      </Link>
+      </AuthRequiredLink>
     </div>
   );
 }

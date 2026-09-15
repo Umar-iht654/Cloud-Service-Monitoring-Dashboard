@@ -3,6 +3,7 @@ import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { AppLayout } from "./components/layout/AppLayout";
 import { FullPageLoader } from "./components/ui/FullPageLoader";
 import { AuthProvider } from "./context/AuthContext";
+import { AuthPromptProvider } from "./context/AuthPromptContext";
 import { UnsavedChangesProvider } from "./context/UnsavedChangesContext";
 import { LoginPage } from "./pages/LoginPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
@@ -67,36 +68,38 @@ function RouteMetadata() {
 function App() {
   return (
     <AuthProvider>
-      <UnsavedChangesProvider>
-        <RouteMetadata />
-        <Suspense fallback={<FullPageLoader label="Loading page" />}>
-          <Routes>
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/register" element={<RegisterPage />} />
-            <Route path="/verify-email" element={<VerifyEmailPage />} />
+      <AuthPromptProvider>
+        <UnsavedChangesProvider>
+          <RouteMetadata />
+          <Suspense fallback={<FullPageLoader label="Loading page" />}>
+            <Routes>
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/register" element={<RegisterPage />} />
+              <Route path="/verify-email" element={<VerifyEmailPage />} />
 
-            <Route element={<AppLayout />}>
-              <Route path="/dashboard" element={<DashboardPage />} />
-              <Route path="/services" element={<DashboardPage />} />
-              <Route path="/services/:id/:slug" element={<ServiceDetailPage />} />
-              <Route path="/services/:id" element={<ServiceDetailPage />} />
-              <Route path="/alerts" element={<AlertsPage />} />
-              <Route path="/reports" element={<ReportsPage />} />
-            </Route>
-
-            <Route element={<ProtectedRoute />}>
               <Route element={<AppLayout />}>
-                <Route path="/services/new" element={<AddServicePage />} />
-                <Route path="/services/:id/:slug/edit" element={<EditServicePage />} />
-                <Route path="/services/:id/edit" element={<EditServicePage />} />
+                <Route path="/dashboard" element={<DashboardPage />} />
+                <Route path="/services" element={<DashboardPage />} />
+                <Route path="/services/:id/:slug" element={<ServiceDetailPage />} />
+                <Route path="/services/:id" element={<ServiceDetailPage />} />
+                <Route path="/alerts" element={<AlertsPage />} />
+                <Route path="/reports" element={<ReportsPage />} />
               </Route>
-            </Route>
 
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
-            <Route path="*" element={<NotFoundPage />} />
-          </Routes>
-        </Suspense>
-      </UnsavedChangesProvider>
+              <Route element={<ProtectedRoute />}>
+                <Route element={<AppLayout />}>
+                  <Route path="/services/new" element={<AddServicePage />} />
+                  <Route path="/services/:id/:slug/edit" element={<EditServicePage />} />
+                  <Route path="/services/:id/edit" element={<EditServicePage />} />
+                </Route>
+              </Route>
+
+              <Route path="/" element={<Navigate to="/dashboard" replace />} />
+              <Route path="*" element={<NotFoundPage />} />
+            </Routes>
+          </Suspense>
+        </UnsavedChangesProvider>
+      </AuthPromptProvider>
     </AuthProvider>
   );
 }

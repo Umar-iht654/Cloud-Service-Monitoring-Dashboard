@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, Navigate, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { AuthRequiredLink } from "../auth/AuthRequiredLink";
 import { FullPageLoader } from "../ui/FullPageLoader";
 import { useAuth } from "../../context/AuthContext";
 import { useUnsavedChanges } from "../../context/UnsavedChangesContext";
@@ -99,21 +100,39 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
         {navItems.map(({ to, label, icon: Icon, isActive }) => {
           const active = isActive(normalizedPathname);
 
-          return (
+          const className = `nav-item group flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#07111f] ${
+                active
+                  ? "nav-item-active bg-cyan-400/12 text-cyan-300 ring-1 ring-inset ring-cyan-300/10"
+                  : "text-slate-400 hover:bg-white/5 hover:text-white"
+              }`;
+          const content = (
+            <>
+              <Icon className="h-5 w-5" />
+              {label}
+              {active && <span className="sr-only">(current page)</span>}
+            </>
+          );
+
+          return to === "/services/new" ? (
+            <AuthRequiredLink
+              key={to}
+              to={to}
+              intent="add-service"
+              onNavigate={onNavigate}
+              ariaCurrent={active ? "page" : undefined}
+              className={className}
+            >
+              {content}
+            </AuthRequiredLink>
+          ) : (
             <Link
               key={to}
               to={to}
               onClick={onNavigate}
               aria-current={active ? "page" : undefined}
-              className={`nav-item group flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#07111f] ${
-                active
-                  ? "nav-item-active bg-cyan-400/12 text-cyan-300 ring-1 ring-inset ring-cyan-300/10"
-                  : "text-slate-400 hover:bg-white/5 hover:text-white"
-              }`}
+              className={className}
             >
-              <Icon className="h-5 w-5" />
-              {label}
-              {active && <span className="sr-only">(current page)</span>}
+              {content}
             </Link>
           );
         })}

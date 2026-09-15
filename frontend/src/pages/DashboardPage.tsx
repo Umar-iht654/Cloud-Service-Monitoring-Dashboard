@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { getApiErrorMessage } from "../api/client";
+import { AuthRequiredLink } from "../components/auth/AuthRequiredLink";
 import { DashboardSkeleton } from "../components/dashboard/DashboardSkeleton";
 import { EmptyServices } from "../components/dashboard/EmptyServices";
 import { SummaryCard } from "../components/dashboard/SummaryCard";
@@ -196,13 +197,14 @@ export function DashboardPage() {
                 <RefreshIcon className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
                 {refreshing ? "Refreshing…" : "Refresh"}
               </button>
-              <Link
+              <AuthRequiredLink
                 to="/services/new"
+                intent="add-service"
                 className="primary-action inline-flex items-center gap-2 whitespace-nowrap rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-slate-950 shadow-lg shadow-black/15 focus:outline-none focus:ring-4 focus:ring-cyan-300/20"
               >
                 <PlusIcon className="h-4 w-4" />
                 Add service
-              </Link>
+              </AuthRequiredLink>
             </div>
           </div>
         </div>

@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { getApiErrorMessage } from "../api/client";
 import { deleteService } from "../api/services";
 import { AlertHistory } from "../components/alerts/AlertHistory";
+import { AuthRequiredLink } from "../components/auth/AuthRequiredLink";
 import { HealthCheckTable } from "../components/services/HealthCheckTable";
 import { ResponseTimeChart } from "../components/services/ResponseTimeChart";
 import { ServiceDetailSkeleton } from "../components/services/ServiceDetailSkeleton";
@@ -16,6 +17,7 @@ import {
 } from "../components/ui/Icons";
 import { StatusBadge } from "../components/ui/StatusBadge";
 import { useAuth } from "../context/AuthContext";
+import { useAuthPrompt } from "../context/AuthPromptContext";
 import { useMonitoringReadSource } from "../hooks/useMonitoringReadSource";
 import type { Alert, HealthCheck, Service, ServiceSummary } from "../types/api";
 import {
@@ -30,6 +32,7 @@ export function ServiceDetailPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const { isAuthenticated } = useAuth();
+  const { openAuthPrompt } = useAuthPrompt();
   const monitoringReadSource = useMonitoringReadSource();
   const [service, setService] = useState<Service | null>(null);
   const [summary, setSummary] = useState<ServiceSummary | null>(null);
@@ -222,10 +225,7 @@ export function ServiceDetailPage() {
   }, [deleteDialogOpen]);
 
   const handleDelete = async () => {
-    if (!isAuthenticated) {
-      navigate("/login");
-      return;
-    }
+    if (!isAuthenticated) return;
     if (!id || !service) return;
     setDeleting(true);
     try {
@@ -355,16 +355,23 @@ export function ServiceDetailPage() {
             <RefreshIcon className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
             {refreshing ? "Refreshing…" : "Refresh"}
           </button>
-          <Link to={isAuthenticated ? serviceEditPath(service.id, service.name) : "/login"} className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.06] px-3.5 py-2.5 text-sm font-semibold text-slate-200 backdrop-blur-sm transition hover:bg-white/10">
+          <AuthRequiredLink
+            to={serviceEditPath(service.id, service.name)}
+            intent="manage-service"
+            className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.06] px-3.5 py-2.5 text-sm font-semibold text-slate-200 backdrop-blur-sm transition hover:bg-white/10"
+          >
             <EditIcon className="h-4 w-4" />
             Edit
-          </Link>
+          </AuthRequiredLink>
           <button
             ref={deleteTriggerRef}
             type="button"
-            onClick={() => {
-              if (isAuthenticated) setDeleteDialogOpen(true);
-              else navigate("/login");
+            onClick={(event) => {
+              if (isAuthenticated) {
+                setDeleteDialogOpen(true);
+              } else {
+                openAuthPrompt("manage-service", event.currentTarget);
+              }
             }}
             disabled={deleting}
             className="inline-flex items-center gap-2 rounded-xl border border-rose-300/20 bg-rose-400/10 px-3.5 py-2.5 text-sm font-semibold text-rose-200 backdrop-blur-sm transition hover:bg-rose-400/15 disabled:opacity-60"

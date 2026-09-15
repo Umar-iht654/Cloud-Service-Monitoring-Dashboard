@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { getApiErrorMessage } from "../api/client";
+import { AuthRequiredLink } from "../components/auth/AuthRequiredLink";
 import { SummaryCard } from "../components/dashboard/SummaryCard";
 import { LightRays } from "../components/effects/LightRays";
 import { ReportsPageSkeleton } from "../components/reports/ReportsPageSkeleton";
@@ -278,13 +279,14 @@ export function ReportsPage() {
               <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-slate-600">
                 Reports will appear after your service completes its first health check.
               </p>
-              <Link
+              <AuthRequiredLink
                 to="/services/new"
+                intent="add-service"
                 className="mt-6 inline-flex items-center gap-2 rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800 focus:outline-none focus:ring-4 focus:ring-cyan-500/20"
               >
                 <GlobeIcon className="h-4 w-4" />
                 Add a service
-              </Link>
+              </AuthRequiredLink>
             </section>
           ) : (
             <>
