@@ -9,7 +9,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { CloseIcon, PlusIcon } from "../components/ui/Icons";
 import { useAuth } from "./AuthContext";
 
@@ -24,7 +24,12 @@ const AuthPromptContext = createContext<AuthPromptContextValue | undefined>(unde
 export function AuthPromptProvider({ children }: { children: ReactNode }) {
   const { isAuthenticated, isLoading, requiresAuthentication } = useAuth();
   const navigate = useNavigate();
-  const [intent, setIntent] = useState<AuthPromptIntent | null>(null);
+  const location = useLocation();
+  const [prompt, setPrompt] = useState<{ intent: AuthPromptIntent; locationKey: string } | null>(null);
+  const intent = prompt?.intent ?? null;
+  if (prompt && (prompt.locationKey !== location.key || isAuthenticated || requiresAuthentication)) {
+    setPrompt(null);
+  }
   const dialogRef = useRef<HTMLElement>(null);
   const createAccountRef = useRef<HTMLButtonElement>(null);
   const triggerRef = useRef<HTMLElement | null>(null);
@@ -32,11 +37,11 @@ export function AuthPromptProvider({ children }: { children: ReactNode }) {
   const titleId = useId();
   const descriptionId = useId();
   const isOpen =
-    intent !== null && !isLoading && !isAuthenticated && !requiresAuthentication;
+    intent !== null && prompt?.locationKey === location.key && !isLoading && !isAuthenticated && !requiresAuthentication;
 
   const closeAuthPrompt = useCallback(() => {
     restoreFocusRef.current = true;
-    setIntent(null);
+    setPrompt(null);
   }, []);
 
   const openAuthPrompt = useCallback(
@@ -47,9 +52,9 @@ export function AuthPromptProvider({ children }: { children: ReactNode }) {
         trigger ??
         (document.activeElement instanceof HTMLElement ? document.activeElement : null);
       restoreFocusRef.current = true;
-      setIntent(nextIntent);
+      setPrompt({ intent: nextIntent, locationKey: location.key });
     },
-    [isAuthenticated, isLoading, requiresAuthentication],
+    [isAuthenticated, isLoading, requiresAuthentication, location.key],
   );
 
   useEffect(() => {
@@ -119,7 +124,7 @@ export function AuthPromptProvider({ children }: { children: ReactNode }) {
 
   const navigateToAuthentication = (destination: "login" | "register") => {
     restoreFocusRef.current = false;
-    setIntent(null);
+    setPrompt(null);
 
     if (destination === "login") {
       navigate("/login", {

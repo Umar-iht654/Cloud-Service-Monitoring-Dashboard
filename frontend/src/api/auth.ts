@@ -37,6 +37,6 @@ export function checkVerificationSessionStatus(token: string) {
   return api.post<VerificationSessionStatusResponse>("/api/auth/verification-session/status", { token });
 }
 
-export function getCurrentUser() {
-  return api.get<CurrentUserResponse>("/api/auth/me");
+export function getCurrentUser(signal?: AbortSignal) {
+  return api.get<CurrentUserResponse>("/api/auth/me", { signal });
 }

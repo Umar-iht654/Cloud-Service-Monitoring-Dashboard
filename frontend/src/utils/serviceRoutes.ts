@@ -8,7 +8,8 @@ export function serviceSlug(name: string) {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
 
-  return slug || "service";
+  // Keep detail URLs distinct from the legacy /services/:id/edit route.
+  return slug === "edit" ? "edit-service" : slug || "service";
 }
 
 // Builds the canonical service details URL.
