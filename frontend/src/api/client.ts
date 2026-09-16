@@ -31,7 +31,13 @@ api.interceptors.response.use(
       (error.response?.status === 401 && !isAuthRequest) ||
       (error.response?.status === 404 && isCurrentUserRequest);
 
-    if (sessionIsInvalid) {
+    // A response from an earlier session must not expire a newer login or an anonymous visit.
+    const currentToken = localStorage.getItem(TOKEN_STORAGE_KEY);
+    const belongsToCurrentSession =
+      currentToken !== null &&
+      error.config?.headers.Authorization === `Bearer ${currentToken}`;
+
+    if (sessionIsInvalid && belongsToCurrentSession) {
       sessionStorage.setItem("auth_notice", "session_expired");
       localStorage.removeItem(TOKEN_STORAGE_KEY);
       window.dispatchEvent(new Event("auth:unauthorized"));

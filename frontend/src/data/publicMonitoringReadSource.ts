@@ -148,8 +148,8 @@ function timeoutFailure(): CheckReading {
   return {
     status: "down",
     httpStatusCode: null,
-    responseTimeMs: null,
-    errorMessage: "Request timed out after 15 seconds",
+    responseTimeMs: 10_000,
+    errorMessage: "Request timed out after 10 seconds",
   };
 }
 
@@ -457,29 +457,52 @@ function buildDailyServiceTelemetry(
       responseVariation +
       (profile.latencyAdjustments[daysAgo] ?? 0),
   );
-  const successfulChecks = profile.checksPerDay - failure.failedChecks;
-  const responseTimeSampleCount =
-    profile.checksPerDay - failure.missingSamples;
+  const periodStartMs = CURRENT_DAY_START_MS - daysAgo * DAY_MS;
+  const periodEndMs = daysAgo === 0 ? DATA_ANCHOR_MS : periodStartMs + DAY_MS;
+  const latestCheckMs = DATA_ANCHOR_MS - latestCheckDelaySeconds[service.id] * 1_000;
+  const intervalMs = service.check_interval_seconds * 1_000;
+  const totalChecks = daysAgo === 0
+    ? Math.max(0, Math.floor((latestCheckMs - periodStartMs) / intervalMs) + 1)
+    : profile.checksPerDay;
+  const recentChecks = (healthChecksByService.get(service.id) ?? []).filter((check) => {
+    const checkedAt = new Date(check.checked_at).getTime();
+    return checkedAt >= periodStartMs && checkedAt < periodEndMs;
+  });
+  // Recent history is authoritative for the dates it covers, including yesterday
+  // when the browser opens early in the day. Older days retain their profiles.
+  const usesRecentHistory = daysAgo === 0 || recentChecks.length > 0;
+  const failedChecks = usesRecentHistory
+    ? recentChecks.filter((check) => check.status === "down").length
+    : failure.failedChecks;
+  const recentSamples = recentChecks
+    .map((check) => check.response_time_ms)
+    .filter((value): value is number => value !== null);
+  const backgroundSampleCount = totalChecks - recentChecks.length -
+    (usesRecentHistory ? 0 : failure.missingSamples);
+  const responseTimeSampleCount = backgroundSampleCount + recentSamples.length;
+  const measuredAverage = responseTimeSampleCount > 0
+    ? Math.round((backgroundSampleCount * averageResponseTimeMs +
+        recentSamples.reduce((total, value) => total + value, 0)) / responseTimeSampleCount)
+    : 0;
+  const minimums = [...recentSamples];
+  const maximums = [...recentSamples];
+  if (backgroundSampleCount > 0) {
+    minimums.push(Math.max(1, averageResponseTimeMs - profile.minResponseDeltaMs));
+    maximums.push(averageResponseTimeMs + profile.maxResponseDeltaMs +
+      (!usesRecentHistory && failedChecks > 0 ? profile.incidentMaxExtraMs : 0));
+  }
+  const successfulChecks = totalChecks - failedChecks;
 
   return {
     service_id: service.id,
-    total_checks: profile.checksPerDay,
+    total_checks: totalChecks,
     successful_checks: successfulChecks,
-    failed_checks: failure.failedChecks,
+    failed_checks: failedChecks,
     response_time_sample_count: responseTimeSampleCount,
-    average_response_time_ms: averageResponseTimeMs,
-    min_response_time_ms: Math.max(
-      1,
-      averageResponseTimeMs - profile.minResponseDeltaMs,
-    ),
-    max_response_time_ms:
-      averageResponseTimeMs +
-      profile.maxResponseDeltaMs +
-      (failure.failedChecks > 0 ? profile.incidentMaxExtraMs : 0),
-    uptime_percentage: uptimePercentage(
-      successfulChecks,
-      profile.checksPerDay,
-    ),
+    average_response_time_ms: measuredAverage,
+    min_response_time_ms: minimums.length > 0 ? Math.min(...minimums) : null,
+    max_response_time_ms: maximums.length > 0 ? Math.max(...maximums) : null,
+    uptime_percentage: uptimePercentage(successfulChecks, totalChecks),
   };
 }
 
@@ -622,33 +645,33 @@ interface PublicAlertIncident {
 
 const alertIncidents: PublicAlertIncident[] = [
   { id: 9_001, serviceId: publicServiceIds.webhookDeliveryApi, healthCheckIndex: 8, reason: "Expected HTTP status 200 but received 502" },
-  { id: 9_002, serviceId: publicServiceIds.publicApiGateway, healthCheckIndex: 12, reason: "Request timed out after 15 seconds" },
+  { id: 9_002, serviceId: publicServiceIds.publicApiGateway, healthCheckIndex: 12, reason: "Request timed out after 10 seconds" },
   { id: 9_003, serviceId: publicServiceIds.publicApiGateway, healthCheckIndex: 22, reason: "Expected HTTP status 200 but received 502" },
-  { id: 9_004, serviceId: publicServiceIds.authenticationService, healthCheckIndex: 84, reason: "Request timed out after 15 seconds" },
+  { id: 9_004, serviceId: publicServiceIds.authenticationService, healthCheckIndex: 84, reason: "Request timed out after 10 seconds" },
   { id: 9_005, serviceId: publicServiceIds.customerPortal, healthCheckIndex: 88, reason: "Expected HTTP status 200 but received 502" },
-  { id: 9_006, serviceId: publicServiceIds.webhookDeliveryApi, healthCheckIndex: 61, reason: "Request timed out after 15 seconds" },
+  { id: 9_006, serviceId: publicServiceIds.webhookDeliveryApi, healthCheckIndex: 61, reason: "Request timed out after 10 seconds" },
   { id: 9_007, serviceId: publicServiceIds.reportingApi, healthCheckIndex: 23, reason: "Expected HTTP status 200 but received 502" },
   { id: 9_008, serviceId: publicServiceIds.publicApiGateway, daysAgo: 3, hourUtc: 14, reason: "Expected HTTP status 200 but received 502" },
-  { id: 9_009, serviceId: publicServiceIds.reportingApi, daysAgo: 5, hourUtc: 9, reason: "Request timed out after 15 seconds" },
-  { id: 9_010, serviceId: publicServiceIds.webhookDeliveryApi, daysAgo: 6, hourUtc: 16, reason: "Request timed out after 15 seconds" },
+  { id: 9_009, serviceId: publicServiceIds.reportingApi, daysAgo: 5, hourUtc: 9, reason: "Request timed out after 10 seconds" },
+  { id: 9_010, serviceId: publicServiceIds.webhookDeliveryApi, daysAgo: 6, hourUtc: 16, reason: "Request timed out after 10 seconds" },
   { id: 9_011, serviceId: publicServiceIds.webhookDeliveryApi, daysAgo: 11, hourUtc: 11, reason: "Expected HTTP status 200 but received 502" },
-  { id: 9_012, serviceId: publicServiceIds.publicApiGateway, daysAgo: 12, hourUtc: 8, reason: "Request timed out after 15 seconds" },
+  { id: 9_012, serviceId: publicServiceIds.publicApiGateway, daysAgo: 12, hourUtc: 8, reason: "Request timed out after 10 seconds" },
   { id: 9_013, serviceId: publicServiceIds.reportingApi, daysAgo: 14, hourUtc: 18, reason: "Expected HTTP status 200 but received 502" },
   { id: 9_014, serviceId: publicServiceIds.customerPortal, daysAgo: 18, hourUtc: 7, reason: "Expected HTTP status 200 but received 502" },
-  { id: 9_015, serviceId: publicServiceIds.webhookDeliveryApi, daysAgo: 22, hourUtc: 20, reason: "Request timed out after 15 seconds" },
+  { id: 9_015, serviceId: publicServiceIds.webhookDeliveryApi, daysAgo: 22, hourUtc: 20, reason: "Request timed out after 10 seconds" },
   { id: 9_016, serviceId: publicServiceIds.publicApiGateway, daysAgo: 23, hourUtc: 13, reason: "Expected HTTP status 200 but received 502" },
-  { id: 9_017, serviceId: publicServiceIds.reportingApi, daysAgo: 29, hourUtc: 10, reason: "Request timed out after 15 seconds" },
+  { id: 9_017, serviceId: publicServiceIds.reportingApi, daysAgo: 29, hourUtc: 10, reason: "Request timed out after 10 seconds" },
   { id: 9_018, serviceId: publicServiceIds.customerPortal, daysAgo: 38, hourUtc: 15, reason: "Expected HTTP status 200 but received 502" },
-  { id: 9_019, serviceId: publicServiceIds.authenticationService, daysAgo: 41, hourUtc: 6, reason: "Request timed out after 15 seconds" },
+  { id: 9_019, serviceId: publicServiceIds.authenticationService, daysAgo: 41, hourUtc: 6, reason: "Request timed out after 10 seconds" },
   { id: 9_020, serviceId: publicServiceIds.webhookDeliveryApi, daysAgo: 43, hourUtc: 19, reason: "Expected HTTP status 200 but received 502" },
-  { id: 9_021, serviceId: publicServiceIds.reportingApi, daysAgo: 48, hourUtc: 12, reason: "Request timed out after 15 seconds" },
-  { id: 9_022, serviceId: publicServiceIds.publicApiGateway, daysAgo: 53, hourUtc: 17, reason: "Request timed out after 15 seconds" },
-  { id: 9_023, serviceId: publicServiceIds.webhookDeliveryApi, daysAgo: 58, hourUtc: 5, reason: "Request timed out after 15 seconds" },
+  { id: 9_021, serviceId: publicServiceIds.reportingApi, daysAgo: 48, hourUtc: 12, reason: "Request timed out after 10 seconds" },
+  { id: 9_022, serviceId: publicServiceIds.publicApiGateway, daysAgo: 53, hourUtc: 17, reason: "Request timed out after 10 seconds" },
+  { id: 9_023, serviceId: publicServiceIds.webhookDeliveryApi, daysAgo: 58, hourUtc: 5, reason: "Request timed out after 10 seconds" },
   { id: 9_024, serviceId: publicServiceIds.customerPortal, daysAgo: 63, hourUtc: 13, reason: "Expected HTTP status 200 but received 502" },
-  { id: 9_025, serviceId: publicServiceIds.authenticationService, daysAgo: 70, hourUtc: 21, reason: "Request timed out after 15 seconds" },
+  { id: 9_025, serviceId: publicServiceIds.authenticationService, daysAgo: 70, hourUtc: 21, reason: "Request timed out after 10 seconds" },
   { id: 9_026, serviceId: publicServiceIds.reportingApi, daysAgo: 72, hourUtc: 8, reason: "Expected HTTP status 200 but received 502" },
   { id: 9_027, serviceId: publicServiceIds.publicApiGateway, daysAgo: 75, hourUtc: 10, reason: "Expected HTTP status 200 but received 502" },
-  { id: 9_028, serviceId: publicServiceIds.webhookDeliveryApi, daysAgo: 80, hourUtc: 16, reason: "Request timed out after 15 seconds" },
+  { id: 9_028, serviceId: publicServiceIds.webhookDeliveryApi, daysAgo: 80, hourUtc: 16, reason: "Request timed out after 10 seconds" },
 ];
 
 function alertTimestamp(incident: PublicAlertIncident) {

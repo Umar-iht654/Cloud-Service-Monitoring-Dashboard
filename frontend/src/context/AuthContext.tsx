@@ -17,6 +17,8 @@ interface AuthContextValue {
   isAuthenticated: boolean;
   isLoading: boolean;
   requiresAuthentication: boolean;
+  restorationFailed: boolean;
+  retryRestoration: () => void;
   login: (email: string, password: string) => Promise<void>;
   register: (name: string, email: string, password: string) => Promise<RegisterResponse>;
   completeLogin: (data: LoginResponse) => void;
@@ -29,16 +31,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [requiresAuthentication, setRequiresAuthentication] = useState(false);
+  const [restorationFailed, setRestorationFailed] = useState(false);
+  const [restorationAttempt, setRestorationAttempt] = useState(0);
+
+  const retryRestoration = useCallback(() => {
+    setIsLoading(true);
+    setRestorationFailed(false);
+    setRestorationAttempt((attempt) => attempt + 1);
+  }, []);
 
   const logout = useCallback(() => {
     localStorage.removeItem(TOKEN_STORAGE_KEY);
     setUser(null);
     setRequiresAuthentication(false);
+    setRestorationFailed(false);
   }, []);
 
   const expireSession = useCallback(() => {
     localStorage.removeItem(TOKEN_STORAGE_KEY);
     setRequiresAuthentication(true);
+    setRestorationFailed(false);
     setUser(null);
   }, []);
 
@@ -50,13 +62,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
 
+    let active = true;
+    const controller = new AbortController();
     authApi
-      .getCurrentUser()
+      .getCurrentUser(controller.signal)
       .then(({ data }) => {
+        if (!active || localStorage.getItem(TOKEN_STORAGE_KEY) !== token) return;
+        setRestorationFailed(false);
         setUser(data.user);
         setRequiresAuthentication(false);
       })
       .catch((error: unknown) => {
+        if (!active || axios.isCancel(error)) return;
+        if (localStorage.getItem(TOKEN_STORAGE_KEY) !== token) return;
         if (
           axios.isAxiosError(error) &&
           (error.response?.status === 401 || error.response?.status === 404)
@@ -67,10 +85,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         // A stored session that could not be restored is not a resolved anonymous visit.
         setRequiresAuthentication(true);
+        setRestorationFailed(true);
         setUser(null);
       })
-      .finally(() => setIsLoading(false));
-  }, [expireSession]);
+      .finally(() => {
+        if (active) setIsLoading(false);
+      });
+
+    return () => {
+      active = false;
+      controller.abort();
+    };
+  }, [expireSession, restorationAttempt]);
 
   useEffect(() => {
     window.addEventListener("auth:unauthorized", expireSession);
@@ -82,12 +108,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem(TOKEN_STORAGE_KEY, data.token);
     setUser(data.user);
     setRequiresAuthentication(false);
+    setRestorationFailed(false);
   }, []);
 
   const completeLogin = useCallback((data: LoginResponse) => {
     localStorage.setItem(TOKEN_STORAGE_KEY, data.token);
     setUser(data.user);
     setRequiresAuthentication(false);
+    setRestorationFailed(false);
   }, []);
 
   const register = useCallback(
@@ -104,12 +132,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isAuthenticated: Boolean(user),
       isLoading,
       requiresAuthentication,
+      restorationFailed,
+      retryRestoration,
       login,
       register,
       completeLogin,
       logout,
     }),
-    [user, isLoading, requiresAuthentication, login, register, completeLogin, logout],
+    [user, isLoading, requiresAuthentication, restorationFailed, retryRestoration, login, register, completeLogin, logout],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -14,11 +14,14 @@ export function ProtectedRoute() {
         to="/login"
         replace
         state={{
-          from: {
-            pathname: location.pathname,
-            search: location.search,
-            hash: location.hash,
-          },
+          // Only creation is safe to resume: an edit URL may refer to a public record.
+          from: /^\/services\/new\/*$/i.test(location.pathname)
+            ? {
+                pathname: "/services/new",
+                search: location.search,
+                hash: location.hash,
+              }
+            : { pathname: "/dashboard" },
         }}
       />
     );

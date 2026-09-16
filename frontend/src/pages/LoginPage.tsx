@@ -8,7 +8,7 @@ import { FullPageLoader } from "../components/ui/FullPageLoader";
 import { useAuth } from "../context/AuthContext";
 
 export function LoginPage() {
-  const { login, isAuthenticated, isLoading } = useAuth();
+  const { login, logout, isAuthenticated, isLoading, restorationFailed, retryRestoration } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const navigationState = location.state as {
@@ -30,10 +30,14 @@ export function LoginPage() {
   const sessionExpired = authNotice === "session_expired";
   const requestedPath = navigationState?.from?.pathname;
   const safeRequestedPath =
-    requestedPath?.startsWith("/") &&
+    typeof requestedPath === "string" &&
+    requestedPath.startsWith("/") &&
     !requestedPath.startsWith("//") &&
-    !["/login", "/register", "/verify-email"].includes(requestedPath)
-      ? `${requestedPath}${navigationState?.from?.search ?? ""}${navigationState?.from?.hash ?? ""}`
+    !/\/edit\/*$/i.test(requestedPath) &&
+    !/[\\%?#]/.test(requestedPath) &&
+    !Array.from(requestedPath).some((character) => character.charCodeAt(0) <= 32) &&
+    !["/login", "/register", "/verify-email"].includes(requestedPath.replace(/\/+$/, "").toLowerCase())
+      ? `${requestedPath}${typeof navigationState?.from?.search === "string" && navigationState.from.search.startsWith("?") ? navigationState.from.search : ""}${typeof navigationState?.from?.hash === "string" && navigationState.from.hash.startsWith("#") ? navigationState.from.hash : ""}`
       : "/dashboard";
 
   useEffect(() => {
@@ -95,6 +99,20 @@ export function LoginPage() {
           Continue monitoring your services and reliability history.
         </p>
       </div>
+
+      {restorationFailed && (
+        <div role="alert" className="mb-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          <p>We couldn’t restore your session. Your saved sign-in is still available. Try again when your connection returns, or sign in below.</p>
+          <div className="mt-3 flex flex-wrap gap-3">
+            <button type="button" onClick={retryRestoration} className="rounded font-semibold underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-600">
+              Try again
+            </button>
+            <button type="button" onClick={() => { logout(); navigate("/dashboard", { replace: true }); }} className="rounded underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-600">
+              Sign out and continue browsing
+            </button>
+          </div>
+        </div>
+      )}
 
       {error && (
         <div
