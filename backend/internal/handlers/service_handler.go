@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"net/url"
 	"strconv"
 	"strings"
 
@@ -88,33 +87,6 @@ func getUserIDFromContext(c *gin.Context) (uint, bool) {
 	return userID, true
 }
 
-// isValidServiceURL checks whether a submitted service URL is valid.
-func isValidServiceURL(rawURL string) bool {
-	// This parses the raw URL string into a URL object.
-	parsedURL, err := url.ParseRequestURI(rawURL)
-
-	// This checks whether the URL failed to parse.
-	if err != nil {
-		// This returns false because the URL is invalid.
-		return false
-	}
-
-	// This checks whether the URL scheme is either http or https.
-	if parsedURL.Scheme != "http" && parsedURL.Scheme != "https" {
-		// This returns false because only http and https URLs are allowed.
-		return false
-	}
-
-	// This checks whether the URL has a host such as example.com.
-	if parsedURL.Host == "" {
-		// This returns false because a URL without a host is invalid for monitoring.
-		return false
-	}
-
-	// This returns true because the URL passed validation.
-	return true
-}
-
 // CreateService handles creating a new monitored service.
 func (h *ServiceHandler) CreateService(c *gin.Context) {
 	// This gets the authenticated user's ID from the request context.
@@ -173,11 +145,11 @@ func (h *ServiceHandler) CreateService(c *gin.Context) {
 		return
 	}
 
-	// This checks whether the service URL is valid.
-	if !isValidServiceURL(req.URL) {
-		// This returns a 400 response because the URL format is invalid.
+	// This checks URL syntax, scheme, and any literal destination address.
+	if err := monitoring.ValidateServiceURL(req.URL); err != nil {
+		// This returns a safe validation message without exposing network details.
 		c.JSON(http.StatusBadRequest, gin.H{
-			"message": "Service URL must be a valid http or https URL",
+			"message": err.Error(),
 		})
 
 		// This stops the handler because the service cannot be monitored with an invalid URL.
@@ -475,11 +447,11 @@ func (h *ServiceHandler) UpdateService(c *gin.Context) {
 			return
 		}
 
-		// This checks whether the new URL is valid.
-		if !isValidServiceURL(trimmedURL) {
-			// This returns a 400 response because the URL format is invalid.
+		// This checks URL syntax, scheme, and any literal destination address.
+		if err := monitoring.ValidateServiceURL(trimmedURL); err != nil {
+			// This returns a safe validation message without exposing network details.
 			c.JSON(http.StatusBadRequest, gin.H{
-				"message": "Service URL must be a valid http or https URL",
+				"message": err.Error(),
 			})
 
 			// This stops the handler because the service cannot be monitored with an invalid URL.

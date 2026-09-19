@@ -36,11 +36,8 @@ func NewHealthChecker(db *gorm.DB, emailSender *email.Sender) *HealthChecker {
 		// This stores the database connection inside the health checker.
 		DB: db,
 
-		// This creates an HTTP client with a timeout so requests do not hang forever.
-		Client: &http.Client{
-			// This stops a health check if the service does not respond within 10 seconds.
-			Timeout: 10 * time.Second,
-		},
+		// This creates an SSRF-protected HTTP client with the existing 10-second timeout.
+		Client: monitoring.NewSecureHTTPClient(10 * time.Second),
 
 		// This makes the worker scan for due services every 10 seconds.
 		ScanInterval: 10 * time.Second,
@@ -154,13 +151,19 @@ func (h *HealthChecker) checkService(service models.Service) {
 	// This records the start time so response time can be calculated.
 	startTime := time.Now()
 
+	// This protects existing database rows as well as newly submitted URLs.
+	if err := monitoring.ValidateServiceURL(service.URL); err != nil {
+		h.saveHealthCheck(service, "down", nil, nil, healthCheckErrorMessage(err))
+		return
+	}
+
 	// This creates a GET request for the service URL.
 	request, err := http.NewRequest(http.MethodGet, service.URL, nil)
 
 	// This checks whether the request could not be created.
 	if err != nil {
 		// This records the service as down because the URL could not be requested.
-		h.saveHealthCheck(service, "down", nil, nil, err.Error())
+		h.saveHealthCheck(service, "down", nil, nil, monitoring.ErrInvalidServiceURL.Error())
 
 		// This stops the function because there is no valid request to send.
 		return
@@ -175,7 +178,7 @@ func (h *HealthChecker) checkService(service models.Service) {
 	// This checks whether the HTTP request failed completely.
 	if err != nil {
 		// This records the service as down because the request failed.
-		h.saveHealthCheck(service, "down", nil, &responseTimeMs, err.Error())
+		h.saveHealthCheck(service, "down", nil, &responseTimeMs, healthCheckErrorMessage(err))
 
 		// This stops the function because there is no successful response to inspect.
 		return
@@ -209,6 +212,19 @@ func (h *HealthChecker) checkService(service models.Service) {
 
 	// This saves the health check result in the database.
 	h.saveHealthCheck(service, status, &httpStatusCode, &responseTimeMs, errorMessage)
+}
+
+func healthCheckErrorMessage(err error) string {
+	switch {
+	case errors.Is(err, monitoring.ErrBlockedDestination):
+		return monitoring.ErrBlockedDestination.Error()
+	case errors.Is(err, monitoring.ErrInvalidServiceURL):
+		return monitoring.ErrInvalidServiceURL.Error()
+	case errors.Is(err, monitoring.ErrDestinationResolution):
+		return monitoring.ErrDestinationResolution.Error()
+	default:
+		return err.Error()
+	}
 }
 
 // saveHealthCheck stores the check result and updates the service current status.
