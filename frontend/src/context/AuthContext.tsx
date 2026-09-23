@@ -15,6 +15,7 @@ import type { LoginResponse, RegisterResponse, User } from "../types/api";
 interface AuthContextValue {
   user: User | null;
   isAuthenticated: boolean;
+  isAnonymous: boolean;
   isLoading: boolean;
   requiresAuthentication: boolean;
   restorationFailed: boolean;
@@ -130,6 +131,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     () => ({
       user,
       isAuthenticated: Boolean(user),
+      isAnonymous: !user && !isLoading && !requiresAuthentication,
       isLoading,
       requiresAuthentication,
       restorationFailed,

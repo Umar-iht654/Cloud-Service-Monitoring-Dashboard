@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, Navigate, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { AuthRequiredLink } from "../auth/AuthRequiredLink";
+import { DemoAccountCTA, DemoBadge } from "../auth/DemoWorkspace";
 import { FullPageLoader } from "../ui/FullPageLoader";
+import { StatusWatchBrand } from "./StatusWatchBrand";
 import { useAuth } from "../../context/AuthContext";
 import { useUnsavedChanges } from "../../context/UnsavedChangesContext";
 import {
@@ -12,7 +14,6 @@ import {
   LogOutIcon,
   MenuIcon,
   PlusIcon,
-  PulseIcon,
 } from "../ui/Icons";
 
 const navItems = [
@@ -43,7 +44,7 @@ const navItems = [
 ];
 
 function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
-  const { user, isAuthenticated, logout } = useAuth();
+  const { user, isAuthenticated, isAnonymous, logout } = useAuth();
   const { confirmNavigation } = useUnsavedChanges();
   const location = useLocation();
   const navigate = useNavigate();
@@ -68,23 +69,18 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   };
 
   return (
-    <div className="flex h-full min-h-0 flex-col">
-      <div className="flex h-20 shrink-0 items-center gap-3 border-b border-white/8 px-6">
-        <div className="brand-pulse flex h-10 w-10 items-center justify-center rounded-xl bg-cyan-400 text-[#07111f] shadow-lg shadow-cyan-400/20">
-          <PulseIcon className="h-6 w-6" />
-        </div>
-        <div>
-          <p className="font-semibold text-white">StatusWatch</p>
-          <p className="text-xs text-slate-400">Service monitoring console</p>
-        </div>
+    <div className="flex h-full min-h-0 flex-col overflow-y-auto">
+      <div className="flex h-20 shrink-0 items-center border-b border-white/8 pl-4 pr-12 lg:px-6">
+        <StatusWatchBrand variant="sidebar" />
       </div>
 
       <div className="mx-4 mt-5 flex shrink-0 items-center gap-2 rounded-xl border border-cyan-300/10 bg-cyan-300/[0.04] px-3 py-2 text-xs font-medium text-slate-300">
         <span className="h-1.5 w-1.5 rounded-full bg-cyan-400 shadow-[0_0_10px_rgba(34,211,238,0.7)]" />
-        Monitoring workspace
+        <span className="min-w-0 flex-1">{isAnonymous ? "Demo workspace" : "Monitoring workspace"}</span>
+        {isAnonymous && <DemoBadge />}
       </div>
 
-      <nav className="min-h-0 flex-1 space-y-2 overflow-y-auto px-4 py-7" aria-label="Main navigation">
+      <nav className="flex-1 shrink-0 space-y-2 px-4 py-7" aria-label="Main navigation">
         <p className="mb-3 px-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
           Workspace
         </p>
@@ -150,24 +146,9 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
               Sign out
             </button>
           </>
-        ) : (
-          <div className="space-y-2">
-            <Link
-              to="/login"
-              onClick={onNavigate}
-              className="flex w-full items-center justify-center rounded-xl border border-white/10 bg-white/[0.05] px-3 py-2.5 text-sm font-semibold text-white transition hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#07111f]"
-            >
-              Sign in
-            </Link>
-            <Link
-              to="/register"
-              onClick={onNavigate}
-              className="flex w-full items-center justify-center rounded-xl px-3 py-2 text-sm font-medium text-cyan-300 transition hover:bg-cyan-400/10 hover:text-cyan-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#07111f]"
-            >
-              Create account
-            </Link>
-          </div>
-        )}
+        ) : isAnonymous ? (
+          <DemoAccountCTA onNavigate={onNavigate} />
+        ) : null}
       </div>
     </div>
   );
@@ -175,7 +156,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
 
 export function AppLayout() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const { isLoading, requiresAuthentication } = useAuth();
+  const { isLoading, requiresAuthentication, isAnonymous } = useAuth();
   const location = useLocation();
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   const drawerRef = useRef<HTMLElement>(null);
@@ -323,10 +304,8 @@ export function AppLayout() {
             <MenuIcon className="h-5 w-5" />
           </button>
           <div className="ml-3 flex min-w-0 items-center gap-2">
-            <div className="brand-pulse flex h-8 w-8 items-center justify-center rounded-lg bg-[#07111f] text-cyan-300">
-              <PulseIcon className="h-5 w-5" />
-            </div>
-            <span className="truncate font-semibold">StatusWatch</span>
+            <StatusWatchBrand variant="compact" />
+            {isAnonymous && <DemoBadge />}
           </div>
         </header>
 
