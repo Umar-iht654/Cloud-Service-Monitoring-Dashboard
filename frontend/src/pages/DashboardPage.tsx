@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { getApiErrorMessage } from "../api/client";
 import { AuthRequiredLink } from "../components/auth/AuthRequiredLink";
+import { DemoBanner, SampleDataBadge } from "../components/auth/DemoWorkspace";
 import { DashboardSkeleton } from "../components/dashboard/DashboardSkeleton";
 import { EmptyServices } from "../components/dashboard/EmptyServices";
 import { SummaryCard } from "../components/dashboard/SummaryCard";
@@ -18,10 +19,12 @@ import {
   RefreshIcon,
 } from "../components/ui/Icons";
 import { useMonitoringReadSource } from "../hooks/useMonitoringReadSource";
+import { useAuth } from "../context/AuthContext";
 import type { DashboardSummary, Service, ServiceSummary } from "../types/api";
 import { formatDateTime, formatMilliseconds, formatPercentage } from "../utils/formatters";
 
 export function DashboardPage() {
+  const { isAnonymous } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const monitoringReadSource = useMonitoringReadSource();
@@ -144,6 +147,7 @@ export function DashboardPage() {
 
   return (
     <div className="mx-auto w-full max-w-[1500px] px-4 py-7 sm:px-6 lg:px-8 lg:py-9">
+      <DemoBanner />
       <header className="dashboard-hero mb-7 rounded-[1.75rem] px-5 py-6 text-white sm:px-7 sm:py-7 lg:px-9">
         <LightRays
           className="dashboard-light-rays"
@@ -159,9 +163,12 @@ export function DashboardPage() {
               <span className="h-1.5 w-1.5 rounded-full bg-cyan-300 shadow-[0_0_10px_rgba(103,232,249,0.75)]" />
               Operations overview
             </div>
-            <h1 className="mt-4 text-3xl font-semibold tracking-[-0.04em] sm:text-4xl lg:text-[2.8rem]">
-              Service health
-            </h1>
+            <div className="mt-4 flex flex-wrap items-center gap-3">
+              <h1 className="text-3xl font-semibold tracking-[-0.04em] sm:text-4xl lg:text-[2.8rem]">
+                Service health
+              </h1>
+              {isAnonymous && <SampleDataBadge onDark />}
+            </div>
             <p className="mt-3 max-w-xl text-sm leading-6 text-slate-400 sm:text-base">
               Availability, latency, and reliability signals across every endpoint in your workspace.
             </p>
@@ -186,7 +193,7 @@ export function DashboardPage() {
                 ))}
               </div>
             </div>
-            <div className="flex items-center gap-2.5">
+            <div className="flex flex-wrap items-center gap-2.5">
               <button
                 type="button"
                 onClick={() => void loadDashboard(true)}
@@ -278,8 +285,14 @@ export function DashboardPage() {
           <section id="monitored-services" className="mt-9 scroll-mt-20">
             <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
               <div>
-                <h2 className="text-lg font-semibold text-slate-950">Monitored services</h2>
-                <p className="mt-1 text-sm text-slate-500">Automatically refreshed every 30 seconds.</p>
+                <div className="flex flex-wrap items-center gap-2.5">
+                  <h2 className="text-lg font-semibold text-slate-950">Monitored services</h2>
+                  {isAnonymous && <SampleDataBadge />}
+                </div>
+                <p className="mt-1 text-sm text-slate-500">
+                  Automatically refreshed every 30 seconds.
+                  {isAnonymous && " This is demo data, not your actual services."}
+                </p>
               </div>
               <span className="self-start rounded-full bg-slate-200/60 px-3 py-1 text-xs font-semibold text-slate-600 sm:self-auto">
                 {services.length} {services.length === 1 ? "service" : "services"}

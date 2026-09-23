@@ -1,6 +1,7 @@
 import type { CSSProperties, ReactNode } from "react";
 import { LightRays } from "../effects/LightRays";
 import { ActivityIcon, CheckIcon, ClockIcon, GlobeIcon } from "../ui/Icons";
+import { StatusWatchBrand } from "./StatusWatchBrand";
 
 const monitoringFeatures = [
   "Uptime monitoring",
@@ -38,38 +39,6 @@ const monitoredServices = [
   },
 ];
 
-function StatusWatchAuthBrand({ compact = false }: { compact?: boolean }) {
-  return (
-    <div className={`relative flex items-center ${compact ? "gap-2" : "gap-3"}`}>
-      <img
-        src="/favicon.png"
-        alt=""
-        aria-hidden="true"
-        className={`brand-pulse shrink-0 rounded-xl object-cover ${
-          compact
-            ? "h-9 w-9 shadow-md shadow-cyan-400/15"
-            : "h-12 w-12 shadow-lg shadow-cyan-400/20"
-        }`}
-      />
-      <div className="min-w-0">
-        <p
-          className={`font-extrabold leading-none tracking-normal ${
-            compact ? "text-base" : "text-[1.05rem]"
-          }`}
-        >
-          <span className={compact ? "text-slate-900" : "text-white"}>Status</span>
-          <span className="text-cyan-300">Watch</span>
-        </p>
-        {!compact && (
-          <p className="mt-1 text-xs font-medium text-slate-500">
-            Service monitoring console
-          </p>
-        )}
-      </div>
-    </div>
-  );
-}
-
 export function AuthLayout({ children }: { children: ReactNode }) {
   return (
     <div className="auth-shell grid min-h-screen lg:grid-cols-[1.08fr_0.92fr]">
@@ -82,7 +51,7 @@ export function AuthLayout({ children }: { children: ReactNode }) {
           length={2.4}
           mouseInfluence={0.07}
         />
-        <StatusWatchAuthBrand />
+        <StatusWatchBrand />
 
         <div className="auth-copy relative z-10 my-auto max-w-[44rem] py-16">
           <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-cyan-300/20 bg-cyan-300/10 px-3 py-1.5 text-xs font-semibold text-cyan-200 shadow-[0_0_24px_rgb(34_211_238_/_0.08)]">
@@ -201,7 +170,7 @@ export function AuthLayout({ children }: { children: ReactNode }) {
         className="auth-form-canvas relative flex min-h-screen w-full items-start justify-center px-4 pb-8 pt-24 sm:items-center sm:px-8 sm:py-12 lg:py-10"
       >
         <div className="absolute left-4 top-5 sm:left-8 sm:top-7 lg:hidden">
-          <StatusWatchAuthBrand compact />
+          <StatusWatchBrand variant="compact" />
         </div>
         <div className="auth-form-panel w-full max-w-md rounded-3xl p-5 sm:p-9">{children}</div>
       </main>

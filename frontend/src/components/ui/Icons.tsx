@@ -25,6 +25,12 @@ export const PulseIcon = (props: IconProps) => (
   </IconBase>
 );
 
+export const AnnouncementIcon = (props: IconProps) => (
+  <IconBase {...props}>
+    <path d="M4 10h4l11-5v14L8 14H4zM8 10v4l2 6H6l-2-6M22 10v4" />
+  </IconBase>
+);
+
 export const GridIcon = (props: IconProps) => (
   <IconBase {...props}>
     <rect x="3" y="3" width="7" height="7" rx="1.5" />
